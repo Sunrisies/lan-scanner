@@ -1,0 +1,71 @@
+name: Build and publish release packages
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15-intel
+            target: x86_64-apple-darwin
+            platform: macos-intel
+            binary: target/x86_64-apple-darwin/release/lan-scanner
+          - runner: macos-15
+            target: aarch64-apple-darwin
+            platform: macos-apple-silicon
+            binary: target/aarch64-apple-darwin/release/lan-scanner
+          - runner: windows-2025
+            target: x86_64-pc-windows-msvc
+            platform: windows-x86_64
+            binary: target/x86_64-pc-windows-msvc/release/lan-scanner.exe
+          - runner: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            platform: linux-x86_64
+            binary: target/x86_64-unknown-linux-gnu/release/lan-scanner
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install stable Rust
+        run: rustup toolchain install stable --profile minimal --component rustfmt
+      - name: Check formatting
+        run: cargo +stable fmt --check --all
+      - name: Build release binary
+        run: cargo +stable build --release --locked --target ${{ matrix.target }}
+      - name: Package binary
+        run: python tools/package.py --platform ${{ matrix.platform }} --binary ${{ matrix.binary }} --output dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: package-${{ matrix.platform }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-24.04
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: package-*
+          path: dist
+          merge-multiple: true
+      - name: Generate SHA256 checksums
+        run: cd dist && sha256sum * > SHA256SUMS.txt
+      - name: Publish release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --title "LAN Scanner $GITHUB_REF_NAME" --notes "Cross-platform LAN scanner release. Download the archive for your operating system and architecture, extract it, and follow README.md. SHA256SUMS.txt contains package checksums."
