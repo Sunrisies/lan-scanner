@@ -1,6 +1,6 @@
 # lan-scanner
 
-用 Rust 扫描本机局域网中有响应的 IPv4 设备。仅用于你拥有或获准管理的网络。
+用 Rust 扫描本机局域网中有响应的 IPv4 设备。仅扫描你拥有或获准管理的网络。
 
 ## 运行
 
@@ -10,22 +10,53 @@
 cargo run --release
 ```
 
-手动指定网段：
+指定网段及扫描选项：
 
 ```sh
-cargo run --release -- 192.168.31.0/24
+cargo run --release -- 192.168.31.0/24 --ports 22,80,443,8000-8010 --timeout-ms 200 --workers 128 --csv scan.csv
 ```
 
-编译发布版本：
+查看完整参数：
+
+```sh
+cargo run -- --help
+```
+
+## 结果保存和比较
+
+第一次保存基准：
+
+```sh
+cargo run --release -- --csv previous.csv
+```
+
+之后扫描并与基准比较，同时另存新结果：
+
+```sh
+cargo run --release -- --compare previous.csv --csv current.csv
+```
+
+CSV 包含 IP、反向 DNS 主机名和开放端口。主机名依赖局域网 DNS 的 PTR 记录；没有记录时为空。比较会报告新出现和已离线的 IP。
+
+## 参数
+
+- `--ports 22,80,443,8000-8010`：端口列表和范围；默认扫描 10 个常见端口。
+- `--timeout-ms 200`：每个 TCP 端口的连接等待时间，允许 10–5000 毫秒，默认 120 毫秒。
+- `--workers 128`：并发探测数，允许 1–512，默认 128。
+- `--csv FILE`：将本次结果导出为 CSV。
+- `--compare FILE`：与先前导出的 CSV 比较在线设备变化。
+- `--no-hostname`：跳过反向 DNS 查询。
+
+扫描采用并发 ICMP ping 和 TCP 连接探测，并显示探测进度和已发现设备数量。设备若屏蔽 ping 且未开放所选端口，可能不会显示。网段支持 `/20` 至 `/30`，最多 4094 个主机地址。
+
+## 跨平台和依赖
+
+项目没有第三方 crate。扫描、并发、TCP 连接、参数处理、CSV 读写和进度动画均使用 Rust 标准库。自动识别网段及 ICMP 探测调用系统自带命令：Windows 使用 PowerShell 和 `ping`，Linux 使用 `ip` 和 `ping`，macOS 使用 `ifconfig` 和 `ping`；反向 DNS 查询使用 `nslookup`。如缺少系统命令或自动识别失败，可手动指定网段。
+
+编译：
 
 ```sh
 cargo build --release
 ```
 
-Windows 可执行文件位于 `target\\release\\lan-scanner.exe`；macOS 和 Linux 下位于 `target/release/lan-scanner`。
-
-## 跨平台说明
-
-项目没有第三方 crate 依赖，扫描、并发、TCP 连接和终端进度动画都使用 Rust 标准库。自动识别网段及 ICMP 探测通过操作系统自带命令完成：Windows 使用 PowerShell 和 `ping`，Linux 使用 `ip` 和 `ping`，macOS 使用 `ifconfig` 和 `ping`。若系统没有对应工具或自动识别失败，可手动传入 CIDR 网段。
-
-扫描会并发执行 ICMP ping 和常见 TCP 端口连接。设备若屏蔽 ping 且未开放被探测的端口，可能不会显示。网段支持 `/20` 至 `/30`，最多扫描 4094 个主机地址。
+Windows 产物位于 `target\\release\\lan-scanner.exe`；macOS 和 Linux 产物位于 `target/release/lan-scanner`。
