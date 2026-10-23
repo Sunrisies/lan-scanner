@@ -1,0 +1,14 @@
+今天带你从下载到运行，完整认识 Rust 局域网扫描器。它会探测局域网里有响应的 IPv4 设备，并显示发现的开放 TCP 端口。
+
+先打开 GitHub 仓库：github.com/Sunrisies/lan-scanner。进入 Releases，下载 v0.1.0 里与你的系统匹配的压缩包。M 系列 Mac 选 macOS Apple Silicon，Intel Mac 选 macOS Intel；Windows 选 Windows x86_64；64 位 Linux 选 Linux x86_64。解压后，直接运行包里的程序即可，不用编译。
+
+Windows 在解压目录打开 PowerShell，输入点反斜杠 lan-scanner 点 exe。Mac 或 Linux 打开终端，进入解压目录，运行点斜杠 lan-scanner。程序会自动识别网段并开始扫描。如果自动识别不对，可以在命令后指定网段。
+
+想自己编译的话，先安装 Git 和 Rust 稳定版。运行 git clone，指定 v0.1.0 标签和仓库地址；进入 lan-scanner 目录，再运行 cargo build --release。完成后，程序在 target/release 目录。Windows 运行 lan-scanner.exe，Mac 和 Linux 运行 lan-scanner。
+
+默认扫描十个常见 TCP 端口。也可以指定网段和端口，例如 192.168.31.0/24，以及二十二、八十、四百四十三等端口。加上 csv 文件名，可以导出扫描结果；运行 help 查看所有参数。
+
+结果包含有响应的设备 IP 和探测到的开放端口。防火墙可能会挡住 Ping 或端口探测，所以没显示不一定代表设备离线。请只扫描自己拥有或获准管理的网络。完整命令和使用说明都在仓库 README 里。
+
+
+本机运行实测画面：在 Mac 上执行快速扫描，自动识别到 192.168.31.0/24，254 个地址全部探测完成，发现 4 台有响应的设备，探测到开放端口 53、80、443、8080 和 22。视频画面已隐藏设备的具体 IP；实际结果会随网络环境变化。

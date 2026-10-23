@@ -48,17 +48,42 @@ pub fn detect_network() -> Result<Network, String> {
     #[cfg(not(any(target_os = "windows", target_os = "linux", target_os = "macos")))]
     return Err("自动识别网段支持 Windows、macOS 和 Linux；请手动传入 IPv4/CIDR。".into());
 
-    #[cfg(any(target_os = "windows", target_os = "linux"))]
+    #[cfg(target_os = "windows")]
     {
         let text = String::from_utf8_lossy(&output.stdout);
-        for item in text.split_whitespace() {
-            let candidate = item.trim();
+        for line in text.lines() {
+            let candidate = line.trim();
             if let Ok(network) = Network::parse(candidate) {
-                if candidate
+                let ip = candidate
                     .split('/')
                     .next()
-                    .and_then(|s| s.parse::<Ipv4Addr>().ok())
-                    .is_some_and(|ip| ip.is_private())
+                    .and_then(|s| s.parse::<Ipv4Addr>().ok());
+                if ip.is_some_and(|ip| ip.is_private() && !ip.is_loopback() && !ip.is_link_local())
+                {
+                    return Ok(network);
+                }
+            }
+        }
+    }
+    #[cfg(target_os = "linux")]
+    {
+        let text = String::from_utf8_lossy(&output.stdout);
+        // Prefer a private IPv4 address on a typical physical LAN interface over
+        // docker, bridge, VPN, and other virtual interfaces when listed first.
+        for line in text.lines().filter(|line| !line.contains(" lo ")) {
+            let fields: Vec<_> = line.split_whitespace().collect();
+            let Some(position) = fields.iter().position(|field| *field == "inet") else {
+                continue;
+            };
+            let Some(candidate) = fields.get(position + 1) else {
+                continue;
+            };
+            if let Ok(network) = Network::parse(candidate) {
+                let ip = candidate
+                    .split('/')
+                    .next()
+                    .and_then(|s| s.parse::<Ipv4Addr>().ok());
+                if ip.is_some_and(|ip| ip.is_private() && !ip.is_loopback() && !ip.is_link_local())
                 {
                     return Ok(network);
                 }

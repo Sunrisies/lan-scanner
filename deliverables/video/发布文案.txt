@@ -1,0 +1,25 @@
+B站横屏视频
+
+标题：Rust 局域网扫描器完整上手：GitHub 下载、构建与运行
+
+简介：
+项目仓库：https://github.com/Sunrisies/lan-scanner
+预编译包：https://github.com/Sunrisies/lan-scanner/releases
+
+视频演示了如何选择 macOS、Windows、Linux 对应的 Release 压缩包并直接运行，也介绍了从 v0.1.0 拉取源码、使用 Rust 构建，以及指定网段、端口和导出 CSV 的方法。片尾加入了 Mac 本机实测：254 个地址探测完成，发现 4 台有响应的设备；设备 IP 已隐藏。当前最新已发布版本为 v0.1.0。
+
+该工具默认探测 10 个常见 TCP 端口。受设备防火墙和响应方式影响，扫描结果可能漏掉部分在线设备。请只扫描自己拥有或获准管理的网络。
+
+标签：Rust、局域网扫描、网络工具、GitHub、开源项目、Windows、macOS、Linux
+
+抖音竖屏视频
+
+标题：两分钟上手 Rust 局域网扫描器：下载包直接运行，也能自己编译
+
+简介：
+GitHub 搜索 Sunrisies/lan-scanner。Release 页面可下载 macOS、Windows、Linux 对应版本；也可以拉取 v0.1.0 源码，用 cargo build --release 编译。片尾展示了 Mac 本机扫描实测，设备 IP 已隐藏。竖屏字幕已按屏幕宽度换行并加大字号。视频里有完整命令和字幕。
+
+默认扫描 10 个常见 TCP 端口；设备屏蔽探测时可能漏报。只扫描有权限管理的网络。
+
+旁白与视频字幕全文见：旁白字幕稿.txt
+可单独导入的字幕文件：lan-scanner-yunxi.srt

@@ -4,7 +4,7 @@ mod network;
 mod report;
 mod scanner;
 
-use config::{Config, DEFAULT_PORTS, parse_ports, usage};
+use config::{COMMON_PORTS, Config, DEFAULT_PORTS, ScanMode, parse_ports, usage};
 use network::{Network, detect_network};
 use std::env;
 use std::time::Duration;
@@ -20,35 +20,41 @@ fn parse_config() -> Result<Option<Config>, String> {
         return Ok(None);
     }
     let mut cidr = None;
-    let mut ports = DEFAULT_PORTS.to_vec();
-    let mut timeout_ms = 120u64;
-    let mut workers = 128usize;
+    let mut mode = ScanMode::Fast;
+    let mut custom_ports = None;
+    let mut timeout_ms = None;
+    let mut workers = None;
     let mut csv_path = None;
     let mut compare_path = None;
     let mut resolve_names = true;
 
     while let Some(arg) = args.next() {
         match arg.as_str() {
-            "--ports" => ports = parse_ports(&args.next().ok_or("--ports 后需要端口列表")?)?,
+            "-f" => mode = ScanMode::Common,
+            "--ports" => {
+                custom_ports = Some(parse_ports(&args.next().ok_or("--ports 后需要端口列表")?)?)
+            }
             "--timeout-ms" => {
-                timeout_ms = args
+                let value = args
                     .next()
                     .ok_or("--timeout-ms 后需要毫秒数")?
                     .parse()
                     .map_err(|_| "超时必须是整数")?;
-                if !(10..=5000).contains(&timeout_ms) {
+                if !(10..=5000).contains(&value) {
                     return Err("超时范围为 10 到 5000 毫秒".into());
                 }
+                timeout_ms = Some(value);
             }
             "--workers" => {
-                workers = args
+                let value = args
                     .next()
                     .ok_or("--workers 后需要并发数")?
                     .parse()
                     .map_err(|_| "并发数必须是整数")?;
-                if !(1..=512).contains(&workers) {
+                if !(1..=512).contains(&value) {
                     return Err("并发数范围为 1 到 512".into());
                 }
+                workers = Some(value);
             }
             "--csv" => csv_path = Some(args.next().ok_or("--csv 后需要文件路径")?),
             "--compare" => compare_path = Some(args.next().ok_or("--compare 后需要 CSV 文件路径")?),
@@ -65,11 +71,16 @@ fn parse_config() -> Result<Option<Config>, String> {
         Some(cidr) => Network::parse(&cidr)?,
         None => detect_network()?,
     };
+    let ports = custom_ports.unwrap_or_else(|| match mode {
+        ScanMode::Fast => DEFAULT_PORTS.to_vec(),
+        ScanMode::Common => COMMON_PORTS.to_vec(),
+    });
     Ok(Some(Config {
         network,
+        mode,
         ports,
-        timeout: Duration::from_millis(timeout_ms),
-        workers,
+        timeout: Duration::from_millis(timeout_ms.unwrap_or(120)),
+        workers: workers.unwrap_or(128),
         csv_path,
         compare_path,
         resolve_names,
@@ -87,7 +98,8 @@ fn run() -> Result<(), String> {
         config.network.prefix
     );
     println!(
-        "端口：{} 个 | 超时：{} ms | 并发：{}",
+        "模式：{} | TCP 端口：{} 个 | 超时：{} ms | 并发：{}",
+        config.mode.label(),
         config.ports.len(),
         config.timeout.as_millis(),
         config.workers
