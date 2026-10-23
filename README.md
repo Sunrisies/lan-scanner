@@ -79,9 +79,9 @@ Windows 产物位于 `target\\release\\lan-scanner.exe`；macOS 和 Linux 产物
 
 到 GitHub 仓库的 **Releases** 页面下载与你的系统和处理器匹配的压缩包，解压后按包内 `README.md` 使用。`SHA256SUMS.txt` 可用于核对下载文件完整性。
 
-打版本标签（例如 `v0.1.0`）并推送后，会自动构建这些包并创建 GitHub Release：
+打版本标签（例如 `v0.1.1`）并推送后，会自动构建这些包并创建 GitHub Release：
 
 ```sh
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.1.1
+git push origin v0.1.1
 ```
